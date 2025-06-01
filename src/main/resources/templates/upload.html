@@ -6,7 +6,7 @@
     <link rel="stylesheet" th:href="@{/style.css}">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <body>
-<form method="POST" enctype="multipart/form-data" th:action="@{/process}">
+<form method="POST" id="mainForm" enctype="multipart/form-data" th:action="@{/process}">
     <h1>TextExpert</h1>
 
     <label for="file">Upload a file:</label>
@@ -17,8 +17,25 @@
         <label for="romanNumeralDetection">Enable Roman numeral detection between II & XLIX</label>
     </div>
 
-    <label for="hardStops">Enter your hardstops (or leave blank for defaults <code>{=!?:.}</code>):</label>
-    <input type="text" id="hardStops" name="hardStops">
+    <label for="hardStops">
+        Enter your hardstops (comma-separated, or leave blank for defaults <code>{=!?:.}</code>):
+    </label>
+    <input type="text" id="hardStops" name="hardStops" placeholder="e.g. !,?,.,:">
+
+    <script>
+        document.getElementById("mainForm").addEventListener("submit", function(e) {
+          const input = document.getElementById("hardStops").value.trim();
+
+          if (input !== "") {
+            const isValid = /^([^,\s]{1})(,[^,\s]{1})*$/.test(input);
+
+            if (!isValid) {
+              e.preventDefault();
+              alert("Please enter a comma-separated list of single characters (no spaces). Example: !,?,.");
+            }
+          }
+        });
+    </script>
 
     <label for="outputPrecision">Enter precision of output (1–6 decimal places):</label>
     <input type="number" id="outputPrecision" name="outputPrecision" min="1" max="6">

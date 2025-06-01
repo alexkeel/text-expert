@@ -1,4 +1,4 @@
-package io.github.alexkeel.textexpert.web_app;
+package io.github.alexkeel.textexpert.webapp;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
