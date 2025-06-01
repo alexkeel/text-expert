@@ -3,6 +3,8 @@ package io.github.alexkeel.textexpert.webapp;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -41,14 +43,14 @@ public class UploadController {
                                @RequestParam(defaultValue = "false") boolean fullResults,
                                Model model) {
     try {
-      String content;
-      try (BufferedReader reader = new BufferedReader(
-          new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-        content = reader.lines().collect(Collectors.joining("\n"));
-      }
+      List<Character> stopList = hardStops.chars()
+          .mapToObj(c -> (char) c)
+          .collect(Collectors.toList());
 
-      // Process the text and options here
-      model.addAttribute("fileText", content);
+      final Cruncher cruncher = new Cruncher(file.getInputStream(), romanNumeralDetection,
+          stopList, outputPrecision, fullResults);
+
+      model.addAttribute("result", cruncher.run());
     } catch (final Exception ex) {
       model.addAttribute("error", "Failed to process file: " + ex.getMessage());
     }
