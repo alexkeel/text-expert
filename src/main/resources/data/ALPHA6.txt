@@ -1,0 +1,11 @@
+arious=2 
+friend=1 
+soviet=1 
+queuei=2 
+queued=1 
+queues=1 
+theatr=2 
+physio=2 
+theism=2 
+theist=2 
+jaguar=2 
