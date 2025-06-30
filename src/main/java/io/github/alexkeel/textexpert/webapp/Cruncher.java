@@ -1,11 +1,11 @@
 package io.github.alexkeel.textexpert.webapp;
 
+import io.github.alexkeel.textexpert.webapp.lexer.AcronymClassifier;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Scanner;
@@ -28,6 +28,7 @@ public class Cruncher {
 
   private String results;
 
+  private AcronymClassifier acronymClassifier;
   private Scanner alpha3;
   private Scanner alpha4;
   private Scanner alpha5;
@@ -41,6 +42,17 @@ public class Cruncher {
   private String currentWord;
   private boolean apostropheFound;
   private int sentences;
+  private boolean passed;
+  private boolean acronymMatch;
+  private boolean romanMatch;
+  private boolean acroEof;
+  private boolean fixMatch;
+  private boolean fixEof;
+  private boolean ordinalMatch;
+  private boolean apsMatch;
+  private int count;
+  private int vflag;
+  private boolean endingFlag;
 
   Cruncher(final InputStream content,
            final boolean romanNumeralDetection,
@@ -67,6 +79,9 @@ public class Cruncher {
     accept();
   }
 
+  /**
+   * Lexer
+   */
   private void accept() {
     content.useDelimiter(""); // Read character by character
 
@@ -112,36 +127,141 @@ public class Cruncher {
     content.close();
   }
 
+  // Detection, correction, and classification.
+  public void detect() throws IOException {
+    passed = false;
+    acronymMatch = false;
+    romanMatch = false;
+    acroEof = false;
+    fixMatch = false;
+    fixEof = false;
+    ordinalMatch = false;
+    apsMatch = false;
+    count = 0;
+    vflag = 0;
+    endingFlag = false;
+
+    // Prepare word data
+    var word = currentWord.toString();
+    int length = word.length();
+
+    // Acronym check
+    acronymMatch = acronymClassifier.check(word);
+    if (!acronymMatch) {
+      logger.info("No acronym match found");
+    }
+
+    String lowerWord = currentWord.toLowerCase();
+
+    // Fix match from file
+    if (!acronymMatch) {
+      logger.info("Searching fixes...");
+    }
+
+    if(!fixMatch && !acronymMatch) {
+      while (fixit.hasNextLine()) {
+        String fix = fixit.nextLine();
+        fixcheck(lowerWord, fix);
+      }
+    }
+
+    if (!fixMatch && !acronymMatch) {
+      logger.info("No fix match found");
+    }
+
+    // Roman numeral check
+    if (romanNumeralDetection && !anyMatch()) {
+      romancheck(lowerWord);
+    }
+
+    // Ordinal check
+    if (!anyMatch()) {
+      ordinalcheck(lowerWord);
+    }
+
+    // Apostrophe check
+    if (!anyMatch() && apostropheFound) {
+      aposcheck(lowerWord);
+    }
+
+    if (apsMatch) return;
+
+    // Vowel/consonant analysis
+    if (!anyMatch()) {
+      for (int n = 0; n <= length; n++) {
+        char member = word[n];
+        switch (member) {
+          case 'a':
+            if (vflag == 0) acheck(n);
+            vflag++;
+            break;
+          case 'e':
+            if (vflag == 0) echeck(n);
+            vflag++;
+            break;
+          case 'i':
+            if (vflag == 0) icheck(n);
+            vflag++;
+            break;
+          case 'o':
+            if (vflag == 0) ocheck(n);
+            vflag++;
+            break;
+          case 'u':
+            if (vflag == 0) ucheck(n);
+            vflag++;
+            break;
+          case 'y':
+            if (vflag == 0) ycheck(n);
+            vflag++;
+            break;
+          default:
+            defaultFunc(n);
+            vflag = 0;
+            break;
+        }
+
+        if (fixMatch) return;
+      }
+    }
+
+    if (count == 0) {
+      count = 1;
+      logger.info("Minimum count set");
+    }
+  }
+
+  private boolean anyMatch() {
+    return acronymMatch || fixMatch || romanMatch || ordinalMatch;
+  }
+
+
   private boolean isWordBoundary(char ch) {
     return !Character.isLetterOrDigit(ch) && ch != '\'' && ch != '’';
   }
 
   private void prepFiles() {
     try {
-      alpha3 = new Scanner(new File(readFile("ALPHA3.txt")), StandardCharsets.UTF_8);
-      alpha3.useDelimiter("\\s+");
-      alpha4 = new Scanner(new File(readFile("ALPHA4.txt")), StandardCharsets.UTF_8);
-      alpha4.useDelimiter("\\s+");
-      alpha5 = new Scanner(new File(readFile("ALPHA5.txt")), StandardCharsets.UTF_8);
-      alpha5.useDelimiter("\\s+");
-      alpha6 = new Scanner(new File(readFile("ALPHA6.txt")), StandardCharsets.UTF_8);
-      alpha6.useDelimiter("\\s+");
-      alphaAaps = new Scanner(new File(readFile("ALPHAAAPS.txt")), StandardCharsets.UTF_8);
-      alphaAaps.useDelimiter("\\s+");
-      alphaEnd = new Scanner(new File(readFile("ALPHAEND.txt")), StandardCharsets.UTF_8);
-      alphaEnd.useDelimiter("\\s+");
-      fixit = new Scanner(new File(readFile("FIXIT.txt")), StandardCharsets.UTF_8);
-      fixit.useDelimiter("\\s+");
+      acronymClassifier = new AcronymClassifier("acronym.txt");
+
+      // Convert each below to their own classes
+
+      //alpha3 = new Scanner(new File(readFile("ALPHA3.txt")), StandardCharsets.UTF_8);
+      //alpha3.useDelimiter("\\s+");
+      //alpha4 = new Scanner(new File(readFile("ALPHA4.txt")), StandardCharsets.UTF_8);
+      //alpha4.useDelimiter("\\s+");
+      //alpha5 = new Scanner(new File(readFile("ALPHA5.txt")), StandardCharsets.UTF_8);
+      //alpha5.useDelimiter("\\s+");
+      //alpha6 = new Scanner(new File(readFile("ALPHA6.txt")), StandardCharsets.UTF_8);
+      //alpha6.useDelimiter("\\s+");
+      //alphaAaps = new Scanner(new File(readFile("ALPHAAAPS.txt")), StandardCharsets.UTF_8);
+      //alphaAaps.useDelimiter("\\s+");
+      //alphaEnd = new Scanner(new File(readFile("ALPHAEND.txt")), StandardCharsets.UTF_8);
+      //alphaEnd.useDelimiter("\\s+");
+      //fixit = new Scanner(new File(readFile("FIXIT.txt")), StandardCharsets.UTF_8);
+      //fixit.useDelimiter("\\s+");
     } catch (IOException exception) {
       logger.error(exception.getMessage());
-    }
-  }
-
-  private String readFile(final String filename) throws IOException {
-    final ClassPathResource resource = new ClassPathResource("data/" + filename);
-    try (final BufferedReader reader = new BufferedReader(
-          new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
-      return reader.lines().collect(Collectors.joining("\n"));
     }
   }
 }
