@@ -2,6 +2,7 @@ package io.github.alexkeel.textexpert.webapp;
 
 import io.github.alexkeel.textexpert.webapp.lexer.AcronymClassifier;
 import io.github.alexkeel.textexpert.webapp.lexer.FixClassifier;
+import io.github.alexkeel.textexpert.webapp.lexer.RomanNumeralClassifier;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -26,6 +27,7 @@ public class Cruncher {
 
   private AcronymClassifier acronymClassifier;
   private FixClassifier fixClassifier;
+  private RomanNumeralClassifier romanNumeralClassifier;
 
   private Scanner alpha3;
   private Scanner alpha4;
@@ -153,20 +155,19 @@ public class Cruncher {
     String lowerWord = currentWord.toLowerCase();
 
     // Search fixes
-    if(!fixMatch) {
-      while (fixit.hasNextLine()) {
-        String fix = fixit.nextLine();
-        fixcheck(lowerWord, fix);
-      }
-    }
-
-    if (!fixMatch && !acronymMatch) {
-      logger.info("No fix match found");
+    fixMatch = fixClassifier.check(word);
+    if(fixMatch) {
+      logger.info("Match found in fixes");
+      syllableCount += fixClassifier.getSyllableCount();
+      return;
     }
 
     // Roman numeral check
-    if (romanNumeralDetection && !anyMatch()) {
-      romancheck(lowerWord);
+    romanMatch = romanNumeralClassifier.check(word);
+    if(romanMatch) {
+      logger.info("Match found in roman numerals");
+      syllableCount += romanNumeralClassifier.getSyllableCount();
+      return;
     }
 
     // Ordinal check
@@ -237,6 +238,7 @@ public class Cruncher {
 
   private void prepFiles() {
     try {
+      romanNumeralClassifier = new RomanNumeralClassifier();
       acronymClassifier = new AcronymClassifier("acronym.txt");
       fixClassifier = new FixClassifier("FIXIT.txt");
 

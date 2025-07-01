@@ -16,12 +16,6 @@ public class AcronymClassifier extends Classifier
   }
 
   @Override
-  protected void load() throws IOException {
-    validTokens = new Scanner(new File(readFile(tokenListLocation)), StandardCharsets.UTF_8);
-    validTokens.useDelimiter("\\s+");
-  }
-
-  @Override
   public boolean check(final String word)
   {
 

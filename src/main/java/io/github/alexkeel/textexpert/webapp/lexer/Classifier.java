@@ -1,6 +1,7 @@
 package io.github.alexkeel.textexpert.webapp.lexer;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -16,10 +17,17 @@ public abstract class Classifier
 
   Classifier(final String tokenListLocation) throws IOException {
     this.tokenListLocation = tokenListLocation;
-    load();
+    loadFromFile();
   }
 
-  protected abstract void load() throws IOException;
+  Classifier() {
+    tokenListLocation = "";
+  }
+
+  protected void loadFromFile() throws IOException {
+    validTokens = new Scanner(new File(readFile(tokenListLocation)), StandardCharsets.UTF_8);
+    validTokens.useDelimiter("\\s+");
+  }
 
   public abstract boolean check(final String word);
 
