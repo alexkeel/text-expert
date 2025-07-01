@@ -7,17 +7,25 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 
 public abstract class Classifier
 {
+  private static final Logger logger = LoggerFactory.getLogger(Classifier.class);
+
   protected int syllableCount;
   protected final String tokenListLocation;
   protected Scanner validTokens;
 
-  Classifier(final String tokenListLocation) throws IOException {
+  Classifier(final String tokenListLocation){
     this.tokenListLocation = tokenListLocation;
-    loadFromFile();
+    try {
+      loadFromFile();
+    } catch (IOException exception) {
+      logger.error("Error reading from file: {}", exception.getMessage());
+    }
   }
 
   Classifier() {

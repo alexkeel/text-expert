@@ -4,6 +4,7 @@ import io.github.alexkeel.textexpert.webapp.lexer.AcronymClassifier;
 import io.github.alexkeel.textexpert.webapp.lexer.ApostropheClassifier;
 import io.github.alexkeel.textexpert.webapp.lexer.FixClassifier;
 import io.github.alexkeel.textexpert.webapp.lexer.OrdinalClassifier;
+import io.github.alexkeel.textexpert.webapp.lexer.PhonemeClassifier;
 import io.github.alexkeel.textexpert.webapp.lexer.RomanNumeralClassifier;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +33,7 @@ public class Cruncher {
   private RomanNumeralClassifier romanNumeralClassifier;
   private OrdinalClassifier ordinalClassifier;
   private ApostropheClassifier apostropheClassifier;
+  private PhonemeClassifier phonemeClassifier;
 
   private Scanner alpha3;
   private Scanner alpha4;
@@ -44,6 +46,7 @@ public class Cruncher {
 
   private String currentWord;
   private boolean apostropheFound;
+  private boolean phonemeFound;
   private int sentences;
   private boolean passed;
   private boolean acronymMatch;
@@ -74,6 +77,8 @@ public class Cruncher {
    */
   public String run() {
     prepFiles();
+
+    loop();
 
     return "Nothing yet";
   }
@@ -146,7 +151,6 @@ public class Cruncher {
 
     // Prepare word data
     var word = currentWord;
-    int length = word.length();
 
     // Acronym check
     acronymMatch = acronymClassifier.check(word);
@@ -155,8 +159,6 @@ public class Cruncher {
       syllableCount += acronymClassifier.getSyllableCount();
       return;
     }
-
-    String lowerWord = currentWord.toLowerCase();
 
     // Search fixes
     fixMatch = fixClassifier.check(word);
@@ -190,49 +192,12 @@ public class Cruncher {
       return;
     }
 
-    if (!anyMatch() && apostropheFound) {
-      aposcheck(lowerWord);
-    }
-
-    if (apsMatch) return;
-
     // Vowel/consonant analysis
-    if (!anyMatch()) {
-      for (int n = 0; n <= length; n++) {
-        char member = word[n];
-        switch (member) {
-          case 'a':
-            if (vflag == 0) acheck(n);
-            vflag++;
-            break;
-          case 'e':
-            if (vflag == 0) echeck(n);
-            vflag++;
-            break;
-          case 'i':
-            if (vflag == 0) icheck(n);
-            vflag++;
-            break;
-          case 'o':
-            if (vflag == 0) ocheck(n);
-            vflag++;
-            break;
-          case 'u':
-            if (vflag == 0) ucheck(n);
-            vflag++;
-            break;
-          case 'y':
-            if (vflag == 0) ycheck(n);
-            vflag++;
-            break;
-          default:
-            defaultFunc(n);
-            vflag = 0;
-            break;
-        }
-
-        if (fixMatch) return;
-      }
+    phonemeFound = phonemeClassifier.check(word);
+    if(phonemeFound) {
+      logger.info("Phoneme found");
+      syllableCount = phonemeClassifier.getSyllableCount();
+      return;
     }
 
     if (syllableCount == 0) {
@@ -240,11 +205,6 @@ public class Cruncher {
       logger.info("Minimum count set");
     }
   }
-
-  private boolean anyMatch() {
-    return acronymMatch || fixMatch || romanMatch || ordinalMatch;
-  }
-
 
   private boolean isWordBoundary(char ch) {
     return !Character.isLetterOrDigit(ch) && ch != '\'' && ch != '’';
@@ -257,6 +217,7 @@ public class Cruncher {
       acronymClassifier = new AcronymClassifier("acronym.txt");
       fixClassifier = new FixClassifier("FIXIT.txt");
       apostropheClassifier = new ApostropheClassifier("ALPHAAPS.txt");
+      phonemeClassifier = new PhonemeClassifier();
 
       // Convert each below to their own classes
 
