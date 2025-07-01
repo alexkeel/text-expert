@@ -2,6 +2,7 @@ package io.github.alexkeel.textexpert.webapp;
 
 import io.github.alexkeel.textexpert.webapp.lexer.AcronymClassifier;
 import io.github.alexkeel.textexpert.webapp.lexer.FixClassifier;
+import io.github.alexkeel.textexpert.webapp.lexer.OrdinalClassifier;
 import io.github.alexkeel.textexpert.webapp.lexer.RomanNumeralClassifier;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +29,7 @@ public class Cruncher {
   private AcronymClassifier acronymClassifier;
   private FixClassifier fixClassifier;
   private RomanNumeralClassifier romanNumeralClassifier;
+  private OrdinalClassifier ordinalClassifier;
 
   private Scanner alpha3;
   private Scanner alpha4;
@@ -171,9 +173,13 @@ public class Cruncher {
     }
 
     // Ordinal check
-    if (!anyMatch()) {
-      ordinalcheck(lowerWord);
+    ordinalMatch = ordinalClassifier.check(word);
+    if(ordinalMatch) {
+      logger.info("Ordinal found");
+      syllableCount += ordinalClassifier.getSyllableCount();
+      return;
     }
+
 
     // Apostrophe check
     if (!anyMatch() && apostropheFound) {
@@ -239,6 +245,7 @@ public class Cruncher {
   private void prepFiles() {
     try {
       romanNumeralClassifier = new RomanNumeralClassifier();
+      ordinalClassifier = new OrdinalClassifier();
       acronymClassifier = new AcronymClassifier("acronym.txt");
       fixClassifier = new FixClassifier("FIXIT.txt");
 
