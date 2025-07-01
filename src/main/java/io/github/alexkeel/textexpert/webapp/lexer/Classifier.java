@@ -4,12 +4,20 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 import org.springframework.core.io.ClassPathResource;
 
 public abstract class Classifier
 {
   protected int syllableCount;
+  protected final String tokenListLocation;
+  protected Scanner validTokens;
+
+  Classifier(final String tokenListLocation) throws IOException {
+    this.tokenListLocation = tokenListLocation;
+    load();
+  }
 
   protected abstract void load() throws IOException;
 

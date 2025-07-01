@@ -7,12 +7,12 @@ import java.util.Scanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AcronymClassifier extends Classifier
-{
-  private static final Logger logger = LoggerFactory.getLogger(AcronymClassifier.class);
+public class FixClassifier extends Classifier {
 
-  public AcronymClassifier(final String acronymListLocation) throws IOException {
-    super(acronymListLocation);
+  private static final Logger logger = LoggerFactory.getLogger(FixClassifier.class);
+
+  public FixClassifier(String file) throws IOException {
+    super(file);
   }
 
   @Override
@@ -24,7 +24,6 @@ public class AcronymClassifier extends Classifier
   @Override
   public boolean check(final String word)
   {
-
     while (validTokens.hasNextLine()) {
       String line = validTokens.nextLine().trim();
 
@@ -35,24 +34,24 @@ public class AcronymClassifier extends Classifier
 
       int equalsIndex = line.indexOf('=');
       if (equalsIndex == -1 || equalsIndex == 0 || equalsIndex == line.length() - 1) {
-        logger.error("Invalid line format: {}", line);
+        logger.error("Invalid format in line: {}", line);
         return false;
       }
 
-      String acronym = line.substring(0, equalsIndex).trim();
+      String fix = line.substring(0, equalsIndex).trim();
       String valueStr = line.substring(equalsIndex + 1).trim();
 
       if (!valueStr.matches("\\d")) {
-        logger.error("\nCan't find valid value for acronym entry in: {}", line);
+        logger.info("\nCan't find valid value for fixit entry in: {}", line);
         return false;
       }
 
       int i = Integer.parseInt(valueStr);
 
-      if (acronym.equals(word)) {
-        logger.info("Acronym match found");
+      if (fix.equals(word)) {
+        logger.info("Fix match found");
         syllableCount = i;
-        return true;  // Stop after finding the match
+        return true; // Found match; stop reading
       }
     }
 

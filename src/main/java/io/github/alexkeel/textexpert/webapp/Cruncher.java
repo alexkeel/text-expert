@@ -1,18 +1,14 @@
 package io.github.alexkeel.textexpert.webapp;
 
 import io.github.alexkeel.textexpert.webapp.lexer.AcronymClassifier;
-import java.io.BufferedReader;
-import java.io.File;
+import io.github.alexkeel.textexpert.webapp.lexer.FixClassifier;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
 
 /**
  * Contains methods for handling text processing and analysis.
@@ -29,13 +25,14 @@ public class Cruncher {
   private String results;
 
   private AcronymClassifier acronymClassifier;
+  private FixClassifier fixClassifier;
+
   private Scanner alpha3;
   private Scanner alpha4;
   private Scanner alpha5;
   private Scanner alpha6;
   private Scanner alphaAaps;
   private Scanner alphaEnd;
-  private Scanner fixit;
 
   private static final Logger logger = LoggerFactory.getLogger(Cruncher.class);
 
@@ -50,7 +47,7 @@ public class Cruncher {
   private boolean fixEof;
   private boolean ordinalMatch;
   private boolean apsMatch;
-  private int count;
+  private int syllableCount;
   private int vflag;
   private boolean endingFlag;
 
@@ -109,7 +106,7 @@ public class Cruncher {
 
       wordStarted = true;
       word.append(ch);
-      logger.info(String.valueOf(ch));
+      logger.info("Appended {} to word", ch);
     }
 
     currentWord = word.toString();
@@ -137,28 +134,26 @@ public class Cruncher {
     fixEof = false;
     ordinalMatch = false;
     apsMatch = false;
-    count = 0;
+    syllableCount = 0;
     vflag = 0;
     endingFlag = false;
 
     // Prepare word data
-    var word = currentWord.toString();
+    var word = currentWord;
     int length = word.length();
 
     // Acronym check
     acronymMatch = acronymClassifier.check(word);
-    if (!acronymMatch) {
-      logger.info("No acronym match found");
+    if (acronymMatch) {
+      logger.info("Acronym match found");
+      syllableCount += acronymClassifier.getSyllableCount();
+      return;
     }
 
     String lowerWord = currentWord.toLowerCase();
 
-    // Fix match from file
-    if (!acronymMatch) {
-      logger.info("Searching fixes...");
-    }
-
-    if(!fixMatch && !acronymMatch) {
+    // Search fixes
+    if(!fixMatch) {
       while (fixit.hasNextLine()) {
         String fix = fixit.nextLine();
         fixcheck(lowerWord, fix);
@@ -225,8 +220,8 @@ public class Cruncher {
       }
     }
 
-    if (count == 0) {
-      count = 1;
+    if (syllableCount == 0) {
+      syllableCount = 1;
       logger.info("Minimum count set");
     }
   }
@@ -243,6 +238,7 @@ public class Cruncher {
   private void prepFiles() {
     try {
       acronymClassifier = new AcronymClassifier("acronym.txt");
+      fixClassifier = new FixClassifier("FIXIT.txt");
 
       // Convert each below to their own classes
 
@@ -258,8 +254,6 @@ public class Cruncher {
       //alphaAaps.useDelimiter("\\s+");
       //alphaEnd = new Scanner(new File(readFile("ALPHAEND.txt")), StandardCharsets.UTF_8);
       //alphaEnd.useDelimiter("\\s+");
-      //fixit = new Scanner(new File(readFile("FIXIT.txt")), StandardCharsets.UTF_8);
-      //fixit.useDelimiter("\\s+");
     } catch (IOException exception) {
       logger.error(exception.getMessage());
     }
